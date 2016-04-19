@@ -14,7 +14,7 @@ class Channel(channel.Channel):
     def get_categories(self, skip_empty_id = True):
         channel.addDir('Directs', 'DefaultVideo.png', channel_id=self.channel_id, action='get_lives')
         data = channel.get_url(self.main_url + '/auvio/emissions')
-        regex = r""",([^\,]+-original.(?:jpg|gif|png|jpeg))[^/]*/>\s*\n\s*</div>\s*\n\s*</figure>\s*\n\s*<header[^>]+>\s*\n\s*<span[^<]+</span>\s*\n\s*<a href="([^"]+)"\s*>\s*\n\s*<h4[^>]+>([^<]+)"""
+        regex = r""",([^\,]+-original.(?:jpg|gif|png))[^/]*/>\s*\n\s*</div>\s*\n\s*</figure>\s*\n\s*<header[^>]+>\s*\n\s*<span[^<]+</span>\s*\n\s*<a href="([^"]+)"\s*>\s*\n\s*<h4[^>]+>([^<]+)"""
         for icon, url, name in re.findall(regex, data):
             id = url.split('?id=')[1]
             if skip_empty_id and id in id2skip:
@@ -71,21 +71,31 @@ class Channel(channel.Channel):
 
 
     def get_live_rtmp(self, page_url):
-         
+        print "live stream!"
         data = channel.get_url(page_url)
         regex = r"""streamName&quot;:&quot;([^&]+)"""
         stream_name = re.search(regex, data)
         if stream_name is None:
             return None
         stream_name = stream_name.group(1)
-        token_json_data = channel.get_url(self.main_url + '/api/media/streaming?streamname=' + stream_name, referer=page_url)
-        token = token_json_data.split('":"')[1].split('"')[0]
-        swf_url = 'http://static.infomaniak.ch/livetv/playerMain-v4.2.41.swf?sVersion=4%2E2%2E41&sDescription=&bLd=0&sTitle=&autostart=1'
-        rtmp = 'rtmp://rtmp.rtbf.be/livecast'
-        page_url = 'http://www.rtbf.be'
-        play = '%s?%s' % (stream_name, token)
-        rtmp += '/%s swfUrl=%s pageUrl=%s tcUrl=%s' % (play, swf_url, page_url, rtmp)
-        return rtmp
+        print "stream name: >" + stream_name + "<"
+        if stream_name == 'freecaster':
+            print "freecaster stream"
+            regex = r"""streamUrl&quot;:&quot;([^&]+)"""
+            freecaster_stream =  re.search(regex, data)
+            freecaster_stream = freecaster_stream.group(1)
+            freecaster_stream=freecaster_stream.replace("\\", "") 
+            channel.playUrl(freecaster_stream)
+        else:
+            print "normal stream"
+            token_json_data = channel.get_url(self.main_url + '/api/media/streaming?streamname=' + stream_name, referer=page_url)
+            token = token_json_data.split('":"')[1].split('"')[0]
+            swf_url = 'http://static.infomaniak.ch/livetv/playerMain-v4.2.41.swf?sVersion=4%2E2%2E41&sDescription=&bLd=0&sTitle=&autostart=1'
+            rtmp = 'rtmp://rtmp.rtbf.be/livecast'
+            page_url = 'http://www.rtbf.be'
+            play = '%s?%s' % (stream_name, token)
+            rtmp += '/%s swfUrl=%s pageUrl=%s tcUrl=%s' % (play, swf_url, page_url, rtmp)
+            return rtmp
     
   
         """Correct this
